@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FloatingCountdown.App/FloatingCountdown.App.csproj" />
+    <Project Path="src/FloatingCountdown.Core/FloatingCountdown.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FloatingCountdown.Core.Tests/FloatingCountdown.Core.Tests.csproj" />
+  </Folder>
+</Solution>
