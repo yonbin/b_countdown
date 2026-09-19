@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <assemblyIdentity version="1.0.0.0" name="Countdown.app" />
-
-  <!-- PerMonitorV2: render natively at every monitor's DPI instead of letting
-       DWM bitmap-stretch a single system-DPI surface (which made the rounded
-       corners fuzzy when the window lived on a non-primary-DPI screen). -->
-  <application xmlns="urn:schemas-microsoft-com:asm.v3">
-    <windowsSettings>
-      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
-      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
-    </windowsSettings>
-  </application>
+  <!-- PerMonitorV2 DPI awareness is declared via <ApplicationHighDpiMode> in the
+       csproj: with WinForms enabled, DPI entries in this manifest are stripped
+       at build (warning WFAC010). -->
 </assembly>

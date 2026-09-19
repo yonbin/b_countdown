@@ -37,12 +37,26 @@ public sealed class TimerViewModel : System.ComponentModel.INotifyPropertyChange
         ExitCommand = new RelayCommand(() => System.Windows.Application.Current.Shutdown());
     }
 
-    /// <summary>Informational version (e.g. "1.0.0"), read from assembly metadata.
-    /// Build metadata after '+' (e.g. a CI-appended git sha) is not shown.</summary>
-    public static string AppVersion { get; } =
-        (System.Diagnostics.FileVersionInfo.GetVersionInfo(
-            System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion ?? "0.0.0")
-        .Split('+')[0];
+    /// <summary>Informational version (e.g. "0.0.1"), read from the executable's
+    /// version resource. Environment.ProcessPath is used because Assembly.Location
+    /// returns "" for single-file deployments; build metadata after '+' is hidden.</summary>
+    public static string AppVersion { get; } = ReadVersion();
+
+    private static string ReadVersion()
+    {
+        var path = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(path))
+        {
+#pragma warning disable IL3000 // fallback only; ProcessPath is always set on .NET 8
+            path = System.Reflection.Assembly.GetExecutingAssembly().Location;
+#pragma warning restore IL3000
+        }
+
+        return (string.IsNullOrEmpty(path)
+            ? "0.0.0"
+            : System.Diagnostics.FileVersionInfo.GetVersionInfo(path).ProductVersion ?? "0.0.0")
+            .Split('+')[0];
+    }
 
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 

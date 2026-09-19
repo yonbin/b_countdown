@@ -11,6 +11,20 @@ public partial class App : Application
 {
     private const string SingleInstanceMutexName = @"Local\Countdown-SingleInstance";
 
+    static App()
+    {
+        // Runs before any WPF HWND is created. WinForms-enabled builds strip DPI
+        // settings from the manifest, so opt into PerMonitorV2 explicitly here:
+        // each monitor renders at native DPI instead of DWM bitmap-stretching.
+        if (!PInvoke.SetProcessDpiAwarenessContext(new IntPtr(-4)) /* DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 */)
+        {
+            if (PInvoke.SetProcessDpiAwareness(2) != 0 /* PROCESS_PER_MONITOR_DPI_AWARE */)
+            {
+                PInvoke.SetProcessDPIAware();  // Vista/7 fallback
+            }
+        }
+    }
+
     private Mutex? _singleInstanceMutex;
     private bool _ownsMutex;
     private PowerWatcher? _powerWatcher;
@@ -63,5 +77,17 @@ public partial class App : Application
 
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
+    }
+
+    private static class PInvoke
+    {
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool SetProcessDPIAware();
+
+        [System.Runtime.InteropServices.DllImport("shcore.dll")]
+        public static extern int SetProcessDpiAwareness(int value);
     }
 }
