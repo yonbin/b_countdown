@@ -59,9 +59,9 @@
 
     <Window.ContextMenu>
         <ContextMenu>
-            <MenuItem Header="5 分钟" Command="{Binding StartPresetCommand}" CommandParameter="5" />
-            <MenuItem Header="10 分钟" Command="{Binding StartPresetCommand}" CommandParameter="10" />
-            <MenuItem Header="25 分钟" Command="{Binding StartPresetCommand}" CommandParameter="25" />
+            <MenuItem Header="15 分钟" Command="{Binding StartPresetCommand}" CommandParameter="15" />
+            <MenuItem Header="30 分钟" Command="{Binding StartPresetCommand}" CommandParameter="30" />
+            <MenuItem Header="50 分钟" Command="{Binding StartPresetCommand}" CommandParameter="50" />
             <MenuItem Header="自定义…" Command="{Binding StartCustomCommand}" />
             <Separator />
             <MenuItem Header="暂停" Command="{Binding PauseCommand}" />

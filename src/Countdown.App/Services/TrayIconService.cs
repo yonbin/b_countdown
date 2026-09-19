@@ -41,9 +41,9 @@ public sealed class TrayIconService : IDisposable
         var menu = new Forms.ContextMenuStrip();
         menu.Items.AddRange(new Forms.ToolStripItem[]
         {
-            BoundItem("5 分钟", viewModel.StartPresetCommand, 5),
-            BoundItem("10 分钟", viewModel.StartPresetCommand, 10),
-            BoundItem("25 分钟", viewModel.StartPresetCommand, 25),
+            BoundItem("15 分钟", viewModel.StartPresetCommand, 15),
+            BoundItem("30 分钟", viewModel.StartPresetCommand, 30),
+            BoundItem("50 分钟", viewModel.StartPresetCommand, 50),
             BoundItem("自定义…", viewModel.StartCustomCommand),
             new Forms.ToolStripSeparator(),
             BoundItem("暂停", viewModel.PauseCommand),
