@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- WinForms is used only for the taskbar notification-area icon. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Countdown</AssemblyName>
+    <RootNamespace>Countdown.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Countdown.Core\Countdown.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Resource (not just ApplicationIcon) so Window.Icon can load it via pack URI. -->
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WinForms is referenced only for NotifyIcon; drop its implicit global
+         usings so Forms types don't collide with WPF's (Application, KeyEventArgs…). -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+</Project>

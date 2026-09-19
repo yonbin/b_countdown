@@ -1,0 +1,150 @@
+<Window x:Class="Countdown.App.Views.TimerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Countdown"
+        Icon="/Assets/app.ico"
+        Width="232"
+        Height="146"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="True"
+        WindowStartupLocation="Manual"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        MouseLeftButtonDown="OnMouseLeftButtonDown">
+
+    <Window.Resources>
+        <!-- Outer border: opaque fill only. Its rounded edge antialiases straight to
+             transparent, so the card perimeter never carries a light fringe. -->
+        <Style x:Key="CardFillStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FF161310" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Style.Triggers>
+                <!-- Inside the card DataTemplate the DataContext is a CardPart, so bind to the window's VM. -->
+                <DataTrigger Binding="{Binding DataContext.State, RelativeSource={RelativeSource AncestorType=Window}}"
+                             Value="Idle">
+                    <Setter Property="Background" Value="#FF1C1916" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.State, RelativeSource={RelativeSource AncestorType=Window}}"
+                             Value="Paused">
+                    <Setter Property="Background" Value="#FF34343C" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.State, RelativeSource={RelativeSource AncestorType=Window}}"
+                             Value="Finished">
+                    <Setter Property="Background" Value="#FF8C1D1D" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Inner 1px hairline, radius 19 (outer 20 minus the pen half-width):
+             the whole pen lands ON the opaque fill instead of straddling the
+             card edge, so no bright pixels feather outside into transparency. -->
+        <Style x:Key="CardStrokeStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="#26FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="19" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.State, RelativeSource={RelativeSource AncestorType=Window}}"
+                             Value="Finished">
+                    <Setter Property="BorderBrush" Value="#33FFFFFF" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="5 分钟" Command="{Binding StartPresetCommand}" CommandParameter="5" />
+            <MenuItem Header="10 分钟" Command="{Binding StartPresetCommand}" CommandParameter="10" />
+            <MenuItem Header="25 分钟" Command="{Binding StartPresetCommand}" CommandParameter="25" />
+            <MenuItem Header="自定义…" Command="{Binding StartCustomCommand}" />
+            <Separator />
+            <MenuItem Header="暂停" Command="{Binding PauseCommand}" />
+            <MenuItem Header="继续" Command="{Binding ResumeCommand}" />
+            <MenuItem Header="重置" Command="{Binding ResetCommand}" />
+            <Separator />
+            <MenuItem Header="关于 Countdown" Command="{Binding AboutCommand}" />
+            <MenuItem Header="退出" Command="{Binding ExitCommand}" />
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <!-- Root has no background: gaps between/around cards are click-through to the desktop.
+         The 10,12 outer margin is empty space kept so the drop shadow can blur without
+         being clipped by the window edge. -->
+    <Grid Margin="10,12">
+    <ItemsControl ItemsSource="{Binding Cards}" Margin="6,8">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <!-- No explicit Height: stretch to the UniformGrid cell. A fixed height
+                     taller than the cell (102 vs 98) got top-anchored and the overflow
+                     clipped, which flattened the bottom corner radii. -->
+                <Border Margin="4"
+                        SnapsToDevicePixels="False"
+                        Style="{StaticResource CardFillStyle}">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="12"
+                                          ShadowDepth="2"
+                                          Opacity="0.30"
+                                          RenderingBias="Quality"
+                                          Color="#FF000000" />
+                    </Border.Effect>
+                    <Grid>
+                        <Border Style="{StaticResource CardStrokeStyle}" />
+                        <TextBlock Text="{Binding Value}"
+                                   FontFamily="Segoe UI"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   TextOptions.TextFormattingMode="Ideal"
+                                   TextOptions.TextRenderingMode="ClearType">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <!-- Foreground is a setter (not a local attribute) so the Idle trigger can override it. -->
+                                    <Setter Property="Foreground" Value="#FFF3E9DC" />
+                                    <Setter Property="FontSize" Value="64" />
+                                    <!-- BlockLineHeight with LineHeight == FontSize removes the font's
+                                         extra line gap (incl. descender room); the small translate then
+                                         centers the digit glyphs' optical middle on the card. -->
+                                    <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+                                    <Setter Property="LineHeight" Value="64" />
+                                    <Setter Property="RenderTransform">
+                                        <Setter.Value>
+                                            <TranslateTransform Y="3" />
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.ShowHours, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                     Value="True">
+                                            <Setter Property="FontSize" Value="48" />
+                                            <Setter Property="LineHeight" Value="48" />
+                                            <Setter Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <TranslateTransform Y="2" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding DataContext.State, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                     Value="Idle">
+                                            <Setter Property="Foreground" Value="#FF8E8272" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    </Grid>
+</Window>

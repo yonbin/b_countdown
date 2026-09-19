@@ -1,6 +1,6 @@
 # Data Model: 始终置顶的悬浮倒计时器
 
-**Date**: 2026-09-18 | **Feature**: 001-floating-countdown | **Spec**: [spec.md](spec.md)
+**Date**: 2026-09-18（2026-09-19 修订：移除 `alertState` 与确认停音迁移，声音能力整体撤销） | **Feature**: 001-floating-countdown | **Spec**: [spec.md](spec.md)
 
 本特性无数据库、无网络、无多用户。运行期"数据"只有一个内存中的倒计时会话；持久化数据只有一个窗口位置设置。字段名是行为级描述，不等于最终代码符号。
 
@@ -14,7 +14,8 @@
 | `duration` | 设定时长 | 正的时间长度；下限 1 秒；由 DurationParser 校验，非法不得进入 Running |
 | `endTime` | 预定结束时刻（绝对挂钟时间） | Running 时唯一真值；`Idle`/`Paused` 时为空；继续时按"当前时刻 + remainingOnPause"重建 |
 | `remainingOnPause` | 暂停瞬间冻结的剩余时长 | 仅 `Paused` 有意义；暂停期间不随现实时间变化 |
-| `alertState` | 提醒音状态 | `Silent` / `Sounding`；归零置 Sounding，手动确认或重置或持续 2 分钟后回 Silent |
+
+> 原字段 `alertState`（提醒音状态）已于 2026-09-19 随声音能力移除；归零提醒仅靠 `state=Finished` 与卡片转红表达。
 
 派生（读取时实时计算，不存储）：
 
@@ -29,11 +30,11 @@
          │重置(任何状态)                          │  │ now ≥ endTime
          │                                       │  │（含 Resume 时发现已超时）
          │        暂停             ┌─────────────┘  ▼
-         └─────── Paused ◄─────────┤            Finished（红色 00:00，声音 Sounding）
+         └─────── Paused ◄─────────┤            Finished（红色 00:00，无声音）
                    ▲   └──────────► Running        │  │
-                   └── 继续（重建 endTime）         │  │ 手动确认（停止声音，红色 00:00 保留）
+                   └── 继续（重建 endTime）         │  │ 重开（T8）/重置（T6）
                                                   ▼  ▼
-                                              重置 → Idle（停止声音）
+                                       Running（新时长） / Idle
 ```
 
 迁移规则：
@@ -43,17 +44,17 @@
 | T1 | Idle | 输入合法时长并开始 | Running | 记录 `duration`、`endTime=now+duration` |
 | T2 | Running | 暂停 | Paused | 存 `remainingOnPause=endTime−now`，清空 `endTime` |
 | T3 | Paused | 继续 | Running | `endTime=now+remainingOnPause` |
-| T4 | Running | 节拍/Resume 重算发现 now ≥ endTime | Finished | 卡片转红、remaining 恒为 0、alertState=Sounding；无文字提示 |
-| T5 | Finished | 用户确认 | Finished（红色 00:00 保留） | alertState=Silent；显示保持红色 00:00 直到重置/重开 |
-| T6 | 任意 | 重置 | Idle | alertState=Silent，清空计时字段，不发声 |
+| T4 | Running | 节拍/Resume 重算发现 now ≥ endTime | Finished | 卡片转红、remaining 恒为 0；无文字提示、无声音 |
+| T5 | — | （已撤销：原"用户确认→停音并保留终态"，2026-09-19 随声音移除；右键菜单不再有"确认"项） | — | — |
+| T6 | 任意 | 重置 | Idle | 清空计时字段 |
 | T7 | Running/Paused | 睡眠后 Resume | Running/Paused（状态不变） | 立即按挂钟重算：剩余正确（可能直接触发 T4） |
-| T8 | Finished | 快速重开（右键菜单选预设或合法自定义时长，FR-019/FR-021） | Running | alertState=Silent（立即停音）→ 等价 T6 → 以新时长执行 T1 |
+| T8 | Finished | 快速重开（右键菜单选预设或合法自定义时长，FR-019/FR-021） | Running | 等价 T6 → 以新时长执行 T1 |
 
 不变量：
 
-- `Idle`、`Finished` 接受新时长设定（Finished 经 T8 快速重开：停音→重置→开始）；`Running`/`Paused` 不暴露时长设定，必须先重置（2026-09-18 clarify）。
+- `Idle`、`Finished` 接受新时长设定（Finished 经 T8 快速重开：重置→开始）；`Running`/`Paused` 不暴露时长设定，必须先重置（2026-09-18 clarify）。
 - `Paused` 中 `remaining` 永远等于 `remainingOnPause`，与现实流逝无关（FR-011）。
-- 任意状态下重置都必须使 alertState 变 Silent（边界用例：声音不叠加）。
+- Finished 为持续终态：仅由重置（T6）或快速重开（T8）离开，无超时自动变化（2026-09-19 起也无声音自停）。
 
 ## 实体 2：用户设置（App Settings）
 
@@ -77,4 +78,4 @@
 
 - 设置文件缺失/损坏/目录不可写：回退默认设置并继续运行，不崩溃、不弹窗报错。
 - 系统时间/时区在运行中被手改：下一拍起以新系统时刻重算，接受跳变（spec 边界用例）。
-- 音频不可用：T4/T5 仍正常发生，仅声音缺失，视觉状态照常。
+- 应用不具备任何音频能力：到点提醒本就只有视觉态，无降级问题（2026-09-19 声音移除后）。

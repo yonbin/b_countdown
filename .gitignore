@@ -38,3 +38,6 @@ publish/
 # OS
 Thumbs.db
 .DS_Store
+
+# CodeGraph local index
+.codegraph/

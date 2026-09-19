@@ -4,6 +4,8 @@
 **Created**: 2026-09-18
 **Feature**: [spec.md](../spec.md)
 
+> **2026-09-19 修订说明**：以下清单项中涉及"提示音/2 分钟自停/静音环境/声音叠加"的描述均已失效——声音能力在当日经用户决定整体移除（见 spec.md「Session 2026-09-19」）。本清单作为当时（2026-09-18）的质量门记录保留，不追溯改写。
+
 ## Content Quality
 
 - [x] No implementation details (languages, frameworks, APIs) — 全文未出现 WPF/.NET/C# 等技术选型（技术栈决定保留在 `assessments/offline-mode/decision.md`）；FR 均以用户可观察行为表述。

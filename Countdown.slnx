@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Countdown.App/Countdown.App.csproj" />
+    <Project Path="src/Countdown.Core/Countdown.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Countdown.Core.Tests/Countdown.Core.Tests.csproj" />
+  </Folder>
+</Solution>

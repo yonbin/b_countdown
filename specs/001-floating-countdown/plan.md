@@ -6,7 +6,7 @@
 
 ## Summary
 
-构建一个 Windows 11 自用桌面小工具：单一悬浮窗始终置顶显示大号倒计时剩余时间，服务"编程、录屏时余光可见"的核心场景；到点播放本地重复提示音；计时以绝对结束时刻为基准，正确穿越睡眠/唤醒。技术方案为 **WPF on .NET 8 (LTS) + C# 12 + XAML**，纯本地、零网络、自包含单文件分发。计时核心逻辑放在无 UI 依赖的类库中以便单元测试（睡眠/唤醒数学必须可测，对应 SC-003 的 ±1 秒要求），WPF 项目仅承载窗口、声音与设置持久化。
+构建一个 Windows 11 自用桌面小工具：单一悬浮窗始终置顶显示大号倒计时剩余时间，服务"编程、录屏时余光可见"的核心场景；到点以卡片转红、停在 00:00 的视觉变化提醒（2026-09-19 起无声音）；计时以绝对结束时刻为基准，正确穿越睡眠/唤醒。技术方案为 **WPF on .NET 8 (LTS) + C# 12 + XAML**，纯本地、零网络、自包含单文件分发。计时核心逻辑放在无 UI 依赖的类库中以便单元测试（睡眠/唤醒数学必须可测，对应 SC-003 的 ±1 秒要求），WPF 项目仅承载窗口与设置持久化。
 
 ## Technical Context
 
@@ -14,14 +14,14 @@
 
 **Primary Dependencies**: 仅 BCL / WPF，无第三方 UI 框架：
 - `System.Windows.Threading.DispatcherTimer`（UI 节拍，250ms 重算显示，不用于计时本身）
-- `System.Media.SoundPlayer`（嵌入式 wav，`PlayLooping` 循环提醒）
-- `Microsoft.Win32.SystemEvents.PowerModeChanged`（监听 `Resume`，唤醒后立即重算/响铃）
+- ~~`System.Media.SoundPlayer`（嵌入式 wav，`PlayLooping` 循环提醒）~~（2026-09-19 随声音能力移除）
+- `Microsoft.Win32.SystemEvents.PowerModeChanged`（监听 `Resume`，唤醒后立即重算）
 - `System.Threading.Mutex`（Local 命名互斥体，单实例）
 - `System.Text.Json`（设置文件）
 
-**Storage**: 单个本地 JSON 设置文件 `%AppData%\FloatingCountdown\settings.json`，仅保存窗口位置（含所在显示器标识）；不保存进行中的计时（FR-015、Assumptions）。
+**Storage**: 单个本地 JSON 设置文件 `%AppData%\Countdown\settings.json`（2026-09-19 由 FloatingCountdown 目录改名），仅保存窗口位置（含所在显示器标识）；不保存进行中的计时（FR-015、Assumptions）。
 
-**Testing**: xUnit 针对 Core 类库（net8.0，无 Windows 桌面运行时依赖）；用 .NET 8 内置 `TimeProvider` 抽象注入虚拟时钟，验证暂停、跨睡眠、超时累加等时间数学。UI/置顶/声音/真实睡眠走 quickstart.md 的手工验收。
+**Testing**: xUnit 针对 Core 类库（net8.0，无 Windows 桌面运行时依赖）；用 .NET 8 内置 `TimeProvider` 抽象注入虚拟时钟，验证暂停、跨睡眠、归零迁移等时间数学。UI/置顶/真实睡眠走 quickstart.md 的手工验收（2026-09-19 起不再含声音验收）。
 
 **Target Platform**: Windows 11，x64 与 ARM64；`win-x64` / `win-arm64` 自包含单文件发布。
 
@@ -63,7 +63,7 @@ specs/001-floating-countdown/
 
 ```text
 src/
-├── FloatingCountdown.Core/                # net8.0；无 UI、无 Windows 依赖，可快速单测
+├── Countdown.Core/                # net8.0；无 UI、无 Windows 依赖，可快速单测
 │   ├── CountdownSession.cs                # 状态机：以绝对结束时刻计算剩余
 │   ├── SessionState.cs                    # Idle/Running/Paused/Finished/Overtime
 │   ├── IClock.cs / SystemClock.cs         # 对 TimeProvider 的薄封装（测试注入虚拟时钟）
@@ -71,28 +71,26 @@ src/
 │   └── Settings/
 │       ├── AppSettings.cs                 # 窗口位置等可持久化设置的模型
 │       └── SettingsStore.cs               # JSON 读写接口（实现放 App 项目）
-└── FloatingCountdown.App/                 # net8.0-windows；WPF 启动项目
+└── Countdown.App/                 # net8.0-windows；WPF 启动项目
     ├── App.xaml / App.xaml.cs             # 单实例互斥体、启动、DI 组合（手工轻量组装）
     ├── Views/
     │   └── TimerWindow.xaml(.cs)          # 无边框置顶悬浮窗、拖动、控件
     ├── ViewModels/
     │   └── TimerViewModel.cs              # 会话状态 → 显示文本/命令；250ms 节拍
     ├── Services/
-    │   ├── AudioAlertService.cs           # SoundPlayer 循环播放/停止
     │   ├── PowerWatcher.cs                # PowerModeChanged(Resume) → 立即重算
     │   ├── WindowPlacementService.cs      # 位置保存/恢复、多屏边界回退
     │   └── JsonSettingsStore.cs           # AppData 下 settings.json
-    └── Resources/
-        └── alert.wav                      # 内置提示音（嵌入资源）
+    # （2026-09-19 移除：Services/AudioAlertService.cs、Resources/alert.wav）
 
 tests/
-└── FloatingCountdown.Core.Tests/          # xUnit，net8.0
+└── Countdown.Core.Tests/          # xUnit，net8.0
     ├── CountdownSessionTests.cs           # 开始/暂停/继续/重置/归零/超时
     ├── SleepResumeTests.cs                # 虚拟时钟穿越睡眠：剩余重算、跨结束时刻
     └── DurationParserTests.cs             # 合法/非法/边界输入（FR-012/FR-013）
 ```
 
-**Structure Decision**: 采用"App + Core + Tests"三项目而非单一 WPF 项目，唯一理由是**可测试性**：SC-003 要求睡眠/唤醒后误差 ≤1 秒，时间数学（绝对结束时刻、暂停冻结、超时累加）必须能用虚拟时钟在无 UI、无真人睡眠的条件下自动化验证；因此把状态机与解析逻辑放进不引用 WPF 的 net8.0 类库。UI 层保持薄：一个窗口、一个 ViewModel、四个被动服务。不引入 MVVM 框架、DI 容器或音频库。
+**Structure Decision**: 采用"App + Core + Tests"三项目而非单一 WPF 项目，唯一理由是**可测试性**：SC-003 要求睡眠/唤醒后误差 ≤1 秒，时间数学（绝对结束时刻、暂停冻结、超时累加）必须能用虚拟时钟在无 UI、无真人睡眠的条件下自动化验证；因此把状态机与解析逻辑放进不引用 WPF 的 net8.0 类库。UI 层保持薄：一个窗口、一个 ViewModel、三个被动服务（2026-09-19 移除音频服务后为 PowerWatcher / WindowPlacementService / JsonSettingsStore）。不引入 MVVM 框架或 DI 容器。
 
 ## Complexity Tracking
 
@@ -101,4 +99,4 @@ tests/
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | 额外的 Core 类库项目（相对单项目） | 计时/睡眠数学需要注入虚拟时钟做自动化测试（SC-003） | 把逻辑写在 WPF 项目里会强制测试承载 WindowsDesktop 运行时，且无法可靠模拟睡眠 |
-| 显式 PowerWatcher 服务 | 唤醒瞬间必须立即重算并响铃，不能等下一个 250ms 节拍 | 仅靠定时器轮询会在刚唤醒时给出最长一拍的陈旧显示，且违背 FR-009"唤醒立即提醒" |
+| 显式 PowerWatcher 服务 | 唤醒瞬间必须立即重算并呈现终态，不能等下一个 250ms 节拍 | 仅靠定时器轮询会在刚唤醒时给出最长一拍的陈旧显示，且违背 FR-009"唤醒立即进入结束态" |

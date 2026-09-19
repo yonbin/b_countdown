@@ -20,14 +20,16 @@
 
 ## R-3：睡眠/唤醒处理
 
-- **Decision**: 订阅 `Microsoft.Win32.SystemEvents.PowerModeChanged`；`PowerModes.Resume` 时立即让会话重算一次，并由 ViewModel 刷新显示；若已过 `endTime`，立即进入 Overtime 并触发声音（FR-009）。
+- **Decision**: 订阅 `Microsoft.Win32.SystemEvents.PowerModeChanged`；`PowerModes.Resume` 时立即让会话重算一次，并由 ViewModel 刷新显示；若已过 `endTime`，立即进入 Finished（2026-09-18 取消 Overtime；2026-09-19 取消触发声音，仅视觉终态，FR-009）。
 - **Rationale**: 仅靠 250ms 节拍，唤醒瞬间最长会有一拍陈旧显示，且"立即响铃"需要显式事件；该事件是 Win32 电源消息的托管封装，WPF 桌面应用可直接使用。
 - **Alternatives considered**: 轮询时间差（拒绝理由见上）；计划任务/系统通知（违背"本地声音、不依赖通知通道"，且复杂）。
 - **真机验收项**: 现代待机（S0）与传统睡眠（S3）机型各测一次短于/长于剩余时间的睡眠（quickstart.md）。
 
-## R-4：声音提醒
+## R-4：声音提醒（2026-09-19 整体撤销）
 
-- **Decision**: 内置一个短促提示音 wav 作为嵌入资源，用 `System.Media.SoundPlayer.PlayLooping()` 循环；用户手动停止或满 2 分钟时 `SoundPlayer.Stop()`（FR-007/FR-008）。重置即停止（边界用例：声音不叠加）。
+> **撤销记录**：用户真机验收时认为循环提示音偏吵，2026-09-19 决定移除全部声音能力（见 spec.md「Session 2026-09-19」）。以下内容仅作决策史保留；代码中的 `AudioAlertService`、嵌入 wav 与 Core 的 `AlertState`/`Acknowledge()` 均已删除。
+
+- **Decision（已撤销）**: 内置一个短促提示音 wav 作为嵌入资源，用 `System.Media.SoundPlayer.PlayLooping()` 循环；用户手动停止或满 2 分钟时 `SoundPlayer.Stop()`（FR-007/FR-008）。重置即停止（边界用例：声音不叠加）。
 - **Rationale**: `SoundPlayer` 走应用自身的本地音频播放，不经 Windows 通知通道，勿扰/专注模式下不受抑制（FR-010）；零依赖、零网络、随单文件发布。
 - **Alternatives considered**: `MediaPlayer`（支持 mp3，但基于 Media Foundation、对短音循环与即时停止更重）；NAudio（第三方依赖，杀鸡用牛刀）；Toast 通知音频（受勿扰与未打包应用注册限制，明确排除）。
 - **已知限制（写入 quickstart）**: 系统总静音/音量为 0/无音频设备时无声；视觉"时间到"状态照常呈现。
@@ -43,13 +45,13 @@
 
 ## R-6：单实例
 
-- **Decision**: 启动时创建 `Local\FloatingCountdown-SingleInstance` 命名 `Mutex`，取不到则直接退出。
+- **Decision**: 启动时创建 `Local\Countdown-SingleInstance` 命名 `Mutex`（2026-09-19 由 FloatingCountdown 改名），取不到则直接退出。
 - **Rationale**: FR/Assumptions 要求单实例单倒计时；Local 前缀限定到本机会话，无需管理员权限。
 - **Alternatives considered**: 命名管道/信号量（对本需求过重）。
 
 ## R-7：持久化
 
-- **Decision**: `%AppData%\FloatingCountdown\settings.json`，`System.Text.Json` 直接序列化 `AppSettings`（首版仅窗口位置）；目录/文件缺失时回退默认值且不报错；写入采用临时文件替换避免半写。
+- **Decision**: `%AppData%\Countdown\settings.json`（2026-09-19 由 FloatingCountdown 目录改名；首启在新路径建文件，旧目录的位置记忆不迁移），`System.Text.Json` 直接序列化 `AppSettings`（首版仅窗口位置）；目录/文件缺失时回退默认值且不报错；写入采用临时文件替换避免半写。
 - **Rationale**: 人类可读、零依赖、随用户配置走；不把设置写在 exe 旁边（单文件发布位置可能不可写）。
 - **Alternatives considered**: 注册表（过度、不便携）；WPF Settings 设计器（对 SDK 风格项目不自然）；可移植 exe 旁文件（Program Files 下不可写）。
 
